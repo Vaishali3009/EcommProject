@@ -1,3 +1,82 @@
+package com.rbs.bdd.application.service;
+
+import com.rbs.bdd.application.port.in.ValidateArrangementForPaymentUseCase;
+import com.rbs.bdd.generated.ValidateArrangementForPaymentRequest;
+import com.rbs.bdd.generated.ValidateArrangementForPaymentResponse;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
+
+import javax.xml.XMLConstants;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.Marshaller;
+import javax.xml.bind.Unmarshaller;
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
+import javax.xml.validation.Validator;
+import java.io.StringReader;
+import java.io.StringWriter;
+
+@Service
+public class ValidateArrangementForPaymentService implements ValidateArrangementForPaymentUseCase {
+
+    private static final String XSD_PATH = "xsd/ArrValidationForPaymentParameters.xsd";
+
+    @Override
+    public Mono<ValidateArrangementForPaymentResponse> validateArrangement(ValidateArrangementForPaymentRequest request) {
+
+        try {
+            // 1️⃣ Marshal the incoming request to XML String
+            String xmlRequest = marshalToXml(request);
+
+            // 2️⃣ Validate the XML String against XSD
+            validateXml(xmlRequest, XSD_PATH);
+
+            // 3️⃣ ✅ If validation succeeds, build a hardcoded response
+            ValidateArrangementForPaymentResponse response = buildHardcodedResponse();
+
+            return Mono.just(response);
+
+        } catch (Exception e) {
+            // ❌ If validation fails, wrap the error (you can enhance this later)
+            return Mono.error(new RuntimeException("Schema validation failed: " + e.getMessage(), e));
+        }
+    }
+
+    private String marshalToXml(ValidateArrangementForPaymentRequest request) throws Exception {
+        JAXBContext context = JAXBContext.newInstance(ValidateArrangementForPaymentRequest.class);
+        Marshaller marshaller = context.createMarshaller();
+        StringWriter writer = new StringWriter();
+        marshaller.marshal(request, writer);
+        return writer.toString();
+    }
+
+    private void validateXml(String xml, String xsdPath) throws Exception {
+        SchemaFactory factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+        Schema schema = factory.newSchema(new ClassPathResource(xsdPath).getFile());
+        Validator validator = schema.newValidator();
+        validator.validate(new StreamSource(new StringReader(xml)));
+    }
+
+    private ValidateArrangementForPaymentResponse buildHardcodedResponse() {
+        ValidateArrangementForPaymentResponse response = new ValidateArrangementForPaymentResponse();
+
+        // Set hardcoded response details here
+        // For example, if ValidateArrangementForPaymentResponse has a "status" field, you can set:
+        // response.setStatus("SUCCESS");
+
+        return response;
+    }
+}
+
+
+
+
+
+
+
 package de.icx.conn.whatsapphub;
 
 import java.io.File;
