@@ -2,50 +2,44 @@ package com.rbs.bdd.infrastructure.soap.api;
 
 import com.rbs.bdd.application.port.in.PaymentValidationPort;
 import com.rbs.bdd.generated.ValidateArrangementForPaymentRequest;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.ws.WebServiceMessage;
 import org.springframework.ws.context.MessageContext;
-import org.springframework.ws.server.endpoint.annotation.Endpoint;
-import org.springframework.ws.server.endpoint.annotation.PayloadRoot;
-import org.springframework.ws.server.endpoint.annotation.RequestPayload;
-import org.springframework.ws.server.endpoint.annotation.ResponsePayload;
 
+import static org.mockito.Mockito.*;
 
 /**
- * SOAP endpoint adapter class for handling the `validateArrangementForPayment` operation.
- * It uses Spring WS annotations to route incoming SOAP requests to the appropriate service layer.
+ * Unit test for {@link PaymentValidationSoapAdapter}.
+ * Ensures that the SOAP endpoint correctly delegates to the orchestrator.
  */
-@Endpoint
-public class PaymentValidationSoapAdapter {
+class PaymentValidationSoapAdapterTest {
 
-    /**Changes for the request*/
+    private PaymentValidationPort mockPort;
+    private PaymentValidationSoapAdapter adapter;
 
-    private static final String NAMESPACE_URI = "http://com/rbsg/soa/C040PaymentManagement/ArrValidationForPayment/V01/";
-    private final PaymentValidationPort paymentValidationPort;
-
-    /**
-     * Constructor-based injection of the orchestrator that handles business logic.
-     *
-     * @param paymentValidationPort the orchestrator service
-     */
-    public PaymentValidationSoapAdapter(PaymentValidationPort paymentValidationPort) {
-        this.paymentValidationPort = paymentValidationPort;
+    @BeforeEach
+    void setUp() {
+        mockPort = mock(PaymentValidationPort.class);
+        adapter = new PaymentValidationSoapAdapter(mockPort);
     }
 
     /**
-     * Handles the `validateArrangementForPayment` SOAP request.
-     * Delegates request processing to the orchestrator which modifies the response message directly.
-     *
-     * @param request the SOAP request payload
-     * @param context the Spring WS message context
+     * Verifies that the SOAP adapter invokes the orchestrator with the request and response.
      */
-    @PayloadRoot(namespace = NAMESPACE_URI, localPart = "validateArrangementForPayment")
-    @ResponsePayload
-    public void validateArrangementForPayment(@RequestPayload ValidateArrangementForPaymentRequest request,
-                                                MessageContext context) {
+    @Test
+    void testValidateArrangementForPayment_shouldDelegateToPort() {
+        // Arrange
+        ValidateArrangementForPaymentRequest request = new ValidateArrangementForPaymentRequest();
+        MessageContext mockContext = mock(MessageContext.class);
+        WebServiceMessage mockResponse = mock(WebServiceMessage.class);
 
-        WebServiceMessage response = context.getResponse();
-        paymentValidationPort.validateArrangementForPayment(request, response);
-         }
+        when(mockContext.getResponse()).thenReturn(mockResponse);
 
+        // Act
+        adapter.validateArrangementForPayment(request, mockContext);
+
+        // Assert
+        verify(mockPort, times(1)).validateArrangementForPayment(request, mockResponse);
+    }
 }
-
