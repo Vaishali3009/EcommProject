@@ -1,33 +1,36 @@
-package com.rbs.bdd.util;
+package com.rbs.bdd.application.service;
 
-import com.rbs.bdd.application.exception.XmlParsingException;
-import com.rbs.bdd.generated.ValidateArrangementForPaymentResponse;
+import com.rbs.bdd.application.port.out.AccountValidationPort;
+import com.rbs.bdd.generated.ValidateArrangementForPaymentRequest;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.ws.WebServiceMessage;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.*;
 
-/**
- * Unit test for {@link XmlUtil} to cover utility methods and constructor.
- */
-class XmlUtilTest {
+class PaymentOrchestratorTest {
 
-    /**
-     * Verifies that the static SOAP response is loaded and unmarshalled successfully.
-     * Assumes that the file static-response/response.xml exists and is valid.
-     */
-    @Test
-    void testLoadStaticResponse_success() {
-        ValidateArrangementForPaymentResponse response = XmlUtil.loadStaticResponse();
-        assertNotNull(response);
-        assertNotNull(response.getResponseId()); // Add more assertions if needed
+    private AccountValidationPort accountValidationPort;
+    private PaymentOrchestrator paymentOrchestrator;
+
+    @BeforeEach
+    void setup() {
+        accountValidationPort = mock(AccountValidationPort.class);
+        paymentOrchestrator = new PaymentOrchestrator(accountValidationPort);
     }
 
-    /**
-     * Verifies that the utility class constructor is private and throws exception if accessed.
-     */
     @Test
-    void testPrivateConstructor_throwsException() {
-        Exception exception = assertThrows(UnsupportedOperationException.class, XmlUtil::new);
-        assertEquals("Utility class", exception.getMessage());
+    void testValidateArrangementForPayment_shouldDelegateToAccountValidationPort() {
+        // Arrange
+        ValidateArrangementForPaymentRequest request = new ValidateArrangementForPaymentRequest();
+        WebServiceMessage message = mock(WebServiceMessage.class);
+
+        // Act
+        paymentOrchestrator.validateArrangementForPayment(request, message);
+
+        // Assert
+        verify(accountValidationPort).validateSchema(request);
+        verify(accountValidationPort).validateBusinessRules(request, message);
     }
 }
