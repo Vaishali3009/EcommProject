@@ -1,0 +1,43 @@
+package com.rbs.bdd.util;
+
+import com.rbs.bdd.application.exception.XmlParsingException;
+import com.rbs.bdd.generated.ValidateArrangementForPaymentResponse;
+import jakarta.xml.bind.JAXBContext;
+import jakarta.xml.bind.Unmarshaller;
+
+import java.io.InputStream;
+
+/**
+ * Utility class for XML operations, specifically for loading and unmarshalling
+ * static SOAP responses from the classpath.
+ * <p>
+ * This class is non-instantiable and only contains static methods.
+ */
+public class XmlUtil {
+
+    /**
+     * Private constructor to prevent instantiation of this utility class.
+     * Throws {@link UnsupportedOperationException} when called.
+     */
+    public XmlUtil() {
+        throw new UnsupportedOperationException("Utility class");
+    }
+
+    /**
+     * Loads a static SOAP response XML file from the classpath and unmarshals it
+     * into a {@link ValidateArrangementForPaymentResponse} Java object.
+     *
+     * @return the unmarshalled {@link ValidateArrangementForPaymentResponse} object
+     * @throws XmlParsingException if the XML cannot be found or unmarshalled
+     */
+    public static ValidateArrangementForPaymentResponse loadStaticResponse() {
+        try {
+            JAXBContext context = JAXBContext.newInstance(ValidateArrangementForPaymentResponse.class);
+            Unmarshaller unmarshaller = context.createUnmarshaller();
+            InputStream is = XmlUtil.class.getClassLoader().getResourceAsStream("static-response/response.xml");
+            return (ValidateArrangementForPaymentResponse) unmarshaller.unmarshal(is);
+        } catch (Exception e) {
+            throw new XmlParsingException("Failed to load static SOAP response", e);
+        }
+    }
+}
