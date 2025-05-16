@@ -1,43 +1,51 @@
-package com.rbs.bdd.util;
+package com.rbs.bdd.infrastructure.soap.api;
 
-import com.rbs.bdd.application.exception.XmlParsingException;
-import com.rbs.bdd.generated.ValidateArrangementForPaymentResponse;
-import jakarta.xml.bind.JAXBContext;
-import jakarta.xml.bind.Unmarshaller;
+import com.rbs.bdd.application.port.in.PaymentValidationPort;
+import com.rbs.bdd.generated.ValidateArrangementForPaymentRequest;
+import org.springframework.ws.WebServiceMessage;
+import org.springframework.ws.context.MessageContext;
+import org.springframework.ws.server.endpoint.annotation.Endpoint;
+import org.springframework.ws.server.endpoint.annotation.PayloadRoot;
+import org.springframework.ws.server.endpoint.annotation.RequestPayload;
+import org.springframework.ws.server.endpoint.annotation.ResponsePayload;
 
-import java.io.InputStream;
 
 /**
- * Utility class for XML operations, specifically for loading and unmarshalling
- * static SOAP responses from the classpath.
- * <p>
- * This class is non-instantiable and only contains static methods.
+ * SOAP endpoint adapter class for handling the `validateArrangementForPayment` operation.
+ * It uses Spring WS annotations to route incoming SOAP requests to the appropriate service layer.
  */
-public class XmlUtil {
+@Endpoint
+public class PaymentValidationSoapAdapter {
+
+    /**Changes for the request*/
+
+    private static final String NAMESPACE_URI = "http://com/rbsg/soa/C040PaymentManagement/ArrValidationForPayment/V01/";
+    private final PaymentValidationPort paymentValidationPort;
 
     /**
-     * Private constructor to prevent instantiation of this utility class.
-     * Throws {@link UnsupportedOperationException} when called.
-     */
-    public XmlUtil() {
-        throw new UnsupportedOperationException("Utility class");
-    }
-
-    /**
-     * Loads a static SOAP response XML file from the classpath and unmarshals it
-     * into a {@link ValidateArrangementForPaymentResponse} Java object.
+     * Constructor-based injection of the orchestrator that handles business logic.
      *
-     * @return the unmarshalled {@link ValidateArrangementForPaymentResponse} object
-     * @throws XmlParsingException if the XML cannot be found or unmarshalled
+     * @param paymentValidationPort the orchestrator service
      */
-    public static ValidateArrangementForPaymentResponse loadStaticResponse() {
-        try {
-            JAXBContext context = JAXBContext.newInstance(ValidateArrangementForPaymentResponse.class);
-            Unmarshaller unmarshaller = context.createUnmarshaller();
-            InputStream is = XmlUtil.class.getClassLoader().getResourceAsStream("static-response/response.xml");
-            return (ValidateArrangementForPaymentResponse) unmarshaller.unmarshal(is);
-        } catch (Exception e) {
-            throw new XmlParsingException("Failed to load static SOAP response", e);
-        }
+    public PaymentValidationSoapAdapter(PaymentValidationPort paymentValidationPort) {
+        this.paymentValidationPort = paymentValidationPort;
     }
+
+    /**
+     * Handles the `validateArrangementForPayment` SOAP request.
+     * Delegates request processing to the orchestrator which modifies the response message directly.
+     *
+     * @param request the SOAP request payload
+     * @param context the Spring WS message context
+     */
+    @PayloadRoot(namespace = NAMESPACE_URI, localPart = "validateArrangementForPayment")
+    @ResponsePayload
+    public void validateArrangementForPayment(@RequestPayload ValidateArrangementForPaymentRequest request,
+                                                MessageContext context) {
+
+        WebServiceMessage response = context.getResponse();
+        paymentValidationPort.validateArrangementForPayment(request, response);
+         }
+
 }
+
