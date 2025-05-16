@@ -1,0 +1,81 @@
+package com.rbs.bdd.infrastructure.config;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.ws.context.MessageContext;
+import org.springframework.ws.server.EndpointInterceptor;
+
+import java.io.ByteArrayOutputStream;
+
+/**
+ * Interceptor to log incoming and outgoing SOAP messages for debugging and monitoring.
+ * This class logs the full request, response, and fault messages.
+ */
+public class SoapLoggingInterceptor implements EndpointInterceptor {
+
+    private static final Logger logger = LoggerFactory.getLogger(SoapLoggingInterceptor.class);
+
+    /**
+     * Logs the incoming SOAP request before it reaches the endpoint.
+     *
+     * @param messageContext the message context containing the request
+     * @param endpoint        the targeted endpoint
+     * @return true to continue processing the request
+     */
+    @Override
+    public boolean handleRequest(MessageContext messageContext, Object endpoint) {
+        logMessage("SOAP Request", messageContext.getRequest());
+        return true;
+    }
+
+    /**
+     * Logs the outgoing SOAP response after the endpoint returns a result.
+     *
+     * @param messageContext the message context containing the response
+     * @param endpoint        the targeted endpoint
+     * @return true to continue processing the response
+     */
+    @Override
+    public boolean handleResponse(MessageContext messageContext, Object endpoint) {
+        logMessage("SOAP Response", messageContext.getResponse());
+        return true;
+    }
+
+    /**
+     * Logs the SOAP fault message if an exception occurs during processing.
+     *
+     * @param messageContext the message context containing the fault
+     * @param endpoint        the targeted endpoint
+     * @return true to continue processing the fault
+     */
+    @Override
+    public boolean handleFault(MessageContext messageContext, Object endpoint) {
+        logMessage("SOAP Fault", messageContext.getResponse());
+        return true;
+    }
+
+    /**
+     * Called after the completion of the message exchange.
+     * No action is needed here, but method must be implemented.
+     */
+    @Override
+    public void afterCompletion(MessageContext messageContext, Object endpoint, Exception ex) {
+        // No action needed after completion
+    }
+
+    /**
+     * Helper method to log the SOAP message by writing it to a byte array output stream.
+     *
+     * @param type    the type of SOAP message (Request, Response, Fault)
+     * @param message the WebServiceMessage to be logged
+     */
+    private void logMessage(String type, org.springframework.ws.WebServiceMessage message) {
+        try {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            message.writeTo(out);  // Serialize the message to an output stream
+            logger.info("{}:\n{}", type, out.toString());  // Log the message content
+        } catch (Exception e) {
+            logger.error("Error logging {} message: {}", type, e.getMessage());
+        }
+    }
+}
