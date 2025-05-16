@@ -1,86 +1,27 @@
-package com.rbs.bdd.application.service;
+package com.rbs.bdd.util;
 
-import com.rbs.bdd.infrastructure.config.SoapWebServiceConfig;
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.ws.server.EndpointInterceptor;
-import org.springframework.ws.server.endpoint.interceptor.PayloadValidatingInterceptor;
-import org.springframework.xml.xsd.commons.CommonsXsdSchemaCollection;
+import com.rbs.bdd.application.exception.XmlParsingException;
+import com.rbs.bdd.generated.ValidateArrangementForPaymentResponse;
+import jakarta.xml.bind.JAXBContext;
+import jakarta.xml.bind.Unmarshaller;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.io.InputStream;
 
-import static org.junit.jupiter.api.Assertions.*;
+public class XmlUtil {
 
-/**
- * Unit test class for {@link SoapWebServiceConfig}.
- * This class verifies that Spring SOAP configuration loads XSD schemas correctly
- * and registers the schema-validating interceptor for all SOAP endpoints.
- */
-@SpringBootTest
-public class SoapWebServiceConfigTest {
-
-    /**
-     * Tests whether {@link SoapWebServiceConfig#updateContactXsd()} loads XSD schema successfully
-     * from the classpath and returns a non-null {@link CommonsXsdSchemaCollection} instance.
-     *
-     * @throws Exception if schema loading fails
-     */
-    @Test
-    void testUpdateContactXsdLoadsSuccessfully() throws Exception {
-        SoapWebServiceConfig config = new SoapWebServiceConfig();
-        CommonsXsdSchemaCollection schemaCollection = config.updateContactXsd();
-        assertNotNull(schemaCollection, "XSD Schema Collection should not be null");
+    //Private Constructor to prevent instantiation
+    public XmlUtil() {
+        throw  new UnsupportedOperationException("Utility class");
     }
 
-    /**
-     * Tests whether {@link SoapWebServiceConfig#addInterceptors(List)} adds a
-     * {@link PayloadValidatingInterceptor} to the list of endpoint interceptors.
-     *
-     * @throws Exception if schema loading fails during interceptor initialization
-     */
-    @Test
-    void testAddInterceptorsAddsInterceptor() throws Exception {
-        SoapWebServiceConfig config = new SoapWebServiceConfig();
-        List<EndpointInterceptor> interceptors = new ArrayList<>();
-
-        config.addInterceptors(interceptors);
-
-        assertFalse(interceptors.isEmpty(), "Interceptor list should not be empty");
-        assertTrue(interceptors.get(0) instanceof PayloadValidatingInterceptor, "Interceptor should be of type PayloadValidatingInterceptor");
+    public static ValidateArrangementForPaymentResponse loadStaticResponse() {
+        try {
+            JAXBContext context = JAXBContext.newInstance(ValidateArrangementForPaymentResponse.class);
+            Unmarshaller unmarshaller = context.createUnmarshaller();
+            InputStream is = XmlUtil.class.getClassLoader().getResourceAsStream("static-response/response.xml");
+            return (ValidateArrangementForPaymentResponse) unmarshaller.unmarshal(is);
+        } catch (Exception e) {
+            throw new XmlParsingException("Failed to load static SOAP response", e);
+        }
     }
 }
-
-
-
-
-
-import com.rbs.bdd.infrastructure.config.SoapWebServiceConfig;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-
-/**
- * Basic Spring Boot test to verify that the {@link SoapWebServiceConfig} bean
- * is correctly loaded into the application context.
- */
-@SpringBootTest
-public class SoapWebServiceConfigTest {
-
-    /** Autowired instance of the SOAP web service configuration class. */
-    @Autowired
-    SoapWebServiceConfig config;
-
-    /**
-     * Verifies that the {@link SoapWebServiceConfig} bean is loaded properly
-     * and is not null when the application context starts.
-     */
-    @Test
-    void contextLoads() {
-        assertNotNull(config);
-    }
-}
-
-
