@@ -1,0 +1,203 @@
+package com.rbs.bdd.domain.enums;
+
+/**
+ * Enum representing the accounting unit status in the SOAP response.
+ */
+public enum AccountingStatus {
+    DOMESTIC_RESTRICTED("Domestic Restricted"),
+    DOMESTIC_UNRESTRICTED("Domestic UnRestricted");
+
+    private final String value;
+
+    AccountingStatus(String value) {
+        this.value = value;
+    }
+
+    /**
+     * Returns the string value of the accounting status.
+     *
+     * @return the string value
+     */
+    public String getValue() {
+        return value;
+    }
+}
+
+--------
+
+package com.rbs.bdd.domain.enums;
+
+/**
+ * Enum representing the switching status in the SOAP response.
+ */
+public enum SwitchingStatus {
+    SWITCHED("Switched"),
+    NOT_SWITCHING("Not Switching");
+
+    private final String value;
+
+    SwitchingStatus(String value) {
+        this.value = value;
+    }
+
+    /**
+     * Returns the string value of the switching status.
+     *
+     * @return the string value
+     */
+    public String getValue() {
+        return value;
+    }
+}
+
+
+--------
+package com.rbs.bdd.application.service;
+
+import com.rbs.bdd.application.exception.SchemaValidationException;
+import com.rbs.bdd.application.port.out.AccountValidationPort;
+import com.rbs.bdd.domain.enums.AccountingStatus;
+import com.rbs.bdd.domain.enums.SwitchingStatus;
+import com.rbs.bdd.generated.ValidateArrangementForPaymentRequest;
+import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.ws.WebServiceMessage;
+import org.springframework.ws.soap.saaj.SaajSoapMessage;
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathFactory;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+
+/**
+ * Service class responsible for validating SOAP request schema and applying business rules
+ * to a static SOAP XML response by updating dynamic fields based on request content.
+ */
+@Service
+@RequiredArgsConstructor
+public class AccountValidationService implements AccountValidationPort {
+
+    private static final Logger logger = LoggerFactory.getLogger(AccountValidationService.class);
+
+    /**
+     * Performs schema validation using Spring WS interceptors.
+     *
+     * @param request the SOAP request payload
+     */
+    @Override
+    public void validateSchema(ValidateArrangementForPaymentRequest request) {
+        logger.info("Schema validation completed (Spring WS handles XSD check)");
+    }
+
+    /**
+     * Applies business rules to the static SOAP XML response by modifying specific fields
+     * based on request content, and writes the final result to the outgoing SOAP message.
+     *
+     * @param request the incoming SOAP request
+     * @param message the outgoing WebServiceMessage to write the modified response to
+     */
+    @Override
+    public void validateBusinessRules(ValidateArrangementForPaymentRequest request, WebServiceMessage message) {
+        try {
+            logger.info("Starting business rule processing for operating brand: {}", request.getRequestHeader().getOperatingBrand());
+
+            InputStream xml = getClass().getClassLoader().getResourceAsStream("static-response/response1.xml");
+            if (xml == null) {
+                throw new SchemaValidationException("response1.xml not found in classpath");
+            }
+
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            factory.setNamespaceAware(true);
+            DocumentBuilder builder = factory.newDocumentBuilder();
+            Document doc = builder.parse(xml);
+
+            applyScenarioRules(request, doc); // Delegated logic for clean structure
+
+            ByteArrayOutputStream rawOutput = new ByteArrayOutputStream();
+            Transformer transformer = TransformerFactory.newInstance().newTransformer();
+            transformer.transform(new DOMSource(doc), new StreamResult(rawOutput));
+
+            SaajSoapMessage soapMessage = (SaajSoapMessage) message;
+            soapMessage.getSaajMessage().getSOAPPart().setContent(
+                new StreamSource(new ByteArrayInputStream(rawOutput.toByteArray()))
+            );
+
+            logger.info("SOAP response dynamically written from static XML template.");
+        } catch (Exception e) {
+            logger.error("Exception while processing business logic: {}", e.getMessage(), e);
+            throw new SchemaValidationException("Error processing response XML", e);
+        }
+    }
+
+    /**
+     * Determines and applies business rule scenarios based on the arrangement identifier and code value
+     * from the request. Modifies the response DOM Document accordingly.
+     *
+     * @param request the incoming request object
+     * @param doc     the parsed XML Document of the static response
+     */
+    private void applyScenarioRules(ValidateArrangementForPaymentRequest request, Document doc) {
+        String identifier = request.getArrangementIdentifier().getIdentifier();
+        String codeValue = request.getArrangementIdentifier().getContext().getCodeValue();
+
+        if (("InternationalBankAccountNumber".equals(codeValue) && identifier.startsWith("GB") && identifier.contains("16005812345670")) ||
+            ("UKBasicBankAccountNumber".equals(codeValue) && identifier.equals("16005812345670"))) {
+            updateResponse(doc, AccountingStatus.DOMESTIC_RESTRICTED, SwitchingStatus.SWITCHED);
+        } else if (("InternationalBankAccountNumber".equals(codeValue) && identifier.startsWith("GB") && identifier.contains("16005812345671")) ||
+            ("UKBasicBankAccountNumber".equals(codeValue) && identifier.equals("16005812345671"))) {
+            updateResponse(doc, AccountingStatus.DOMESTIC_RESTRICTED, SwitchingStatus.NOT_SWITCHING);
+        } else if (("InternationalBankAccountNumber".equals(codeValue) && identifier.startsWith("GB") && identifier.contains("16005812345672")) ||
+            ("UKBasicBankAccountNumber".equals(codeValue) && identifier.equals("16005812345672"))) {
+            updateResponse(doc, AccountingStatus.DOMESTIC_UNRESTRICTED, SwitchingStatus.NOT_SWITCHING);
+        } else if (("InternationalBankAccountNumber".equals(codeValue) && identifier.startsWith("GB") && identifier.contains("16005812345673")) ||
+            ("UKBasicBankAccountNumber".equals(codeValue) && identifier.equals("16005812345673"))) {
+            updateResponse(doc, AccountingStatus.DOMESTIC_UNRESTRICTED, SwitchingStatus.SWITCHED);
+        }
+    }
+
+    /**
+     * Updates the accounting unit status and switching status in the XML response document.
+     *
+     * @param doc              the DOM Document representing the response XML
+     * @param accountingStatus the new accounting unit status to set
+     * @param switchingStatus  the new switching status to set
+     */
+    private void updateResponse(Document doc, AccountingStatus accountingStatus, SwitchingStatus switchingStatus) {
+        try {
+            XPath xpath = XPathFactory.newInstance().newXPath();
+
+            Node statusCodeValue = (Node) xpath.evaluate(
+                "//*[local-name()='validatedArrangement']//*[local-name()='accountingUnits']//*[local-name()='status']//*[local-name()='codeValue']",
+                doc, XPathConstants.NODE
+            );
+            if (statusCodeValue != null) {
+                statusCodeValue.setTextContent(accountingStatus.getValue());
+                logger.debug("Updated accounting status to {}", accountingStatus.getValue());
+            }
+
+            Node switchingStatusNode = (Node) xpath.evaluate(
+                "//*[local-name()='validatedArrangement']//*[local-name()='switchingArrangement']//*[local-name()='switchingStatus']//*[local-name()='codeValue']",
+                doc, XPathConstants.NODE
+            );
+            if (switchingStatusNode != null) {
+                switchingStatusNode.setTextContent(switchingStatus.getValue());
+                logger.debug("Updated switching status to {}", switchingStatus.getValue());
+            }
+        } catch (Exception e) {
+            throw new SchemaValidationException("Failed to update response values", e);
+        }
+    }
+}
