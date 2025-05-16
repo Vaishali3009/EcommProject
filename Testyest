@@ -1,0 +1,71 @@
+package com.rbs.bdd.application.exception;
+
+/**
+ * Exception thrown when an error occurs during XML parsing or unmarshalling.
+ */
+public class XmlParsingException extends RuntimeException {
+
+    /**
+     * Constructs a new XmlParsingException with the specified detail message.
+     *
+     * @param message the detail message explaining the reason for the exception
+     */
+    public XmlParsingException(String message) {
+        super(message);
+    }
+
+    /**
+     * Constructs a new XmlParsingException with the specified detail message and cause.
+     *
+     * @param message the detail message
+     * @param cause   the cause of the exception (can be retrieved later via {@link #getCause()})
+     */
+    public XmlParsingException(String message, Throwable cause) {
+        super(message, cause);
+    }
+}
+
+
+
+
+/**
+ * Intercepts SOAP requests and responses for logging purposes.
+ */
+public class SoapLoggingInterceptor implements EndpointInterceptor {
+
+    /**
+     * Default constructor.
+     */
+    public SoapLoggingInterceptor() {
+        // Default constructor
+    }
+
+    // other methods ...
+}
+
+
+
+/**
+ * Exception thrown when schema validation fails during SOAP request processing.
+ */
+public class SchemaValidationException extends RuntimeException {
+
+    /**
+     * Constructs a new SchemaValidationException with a specific message.
+     *
+     * @param message the detail message
+     */
+    public SchemaValidationException(String message) {
+        super(message);
+    }
+
+    /**
+     * Constructs a new SchemaValidationException with a message and cause.
+     *
+     * @param message the detail message
+     * @param cause the cause of the exception
+     */
+    public SchemaValidationException(String message, Throwable cause) {
+        super(message, cause);
+    }
+}
