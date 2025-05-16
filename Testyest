@@ -1,71 +1,46 @@
-package com.rbs.bdd.application.exception;
+package com.rbs.bdd.infrastructure.config;
 
-/**
- * Exception thrown when an error occurs during XML parsing or unmarshalling.
- */
-public class XmlParsingException extends RuntimeException {
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.ws.context.MessageContext;
+import org.springframework.ws.server.EndpointInterceptor;
 
-    /**
-     * Constructs a new XmlParsingException with the specified detail message.
-     *
-     * @param message the detail message explaining the reason for the exception
-     */
-    public XmlParsingException(String message) {
-        super(message);
-    }
+import java.io.ByteArrayOutputStream;
 
-    /**
-     * Constructs a new XmlParsingException with the specified detail message and cause.
-     *
-     * @param message the detail message
-     * @param cause   the cause of the exception (can be retrieved later via {@link #getCause()})
-     */
-    public XmlParsingException(String message, Throwable cause) {
-        super(message, cause);
-    }
-}
-
-
-
-
-/**
- * Intercepts SOAP requests and responses for logging purposes.
- */
 public class SoapLoggingInterceptor implements EndpointInterceptor {
 
-    /**
-     * Default constructor.
-     */
-    public SoapLoggingInterceptor() {
-        // Default constructor
+    private static final Logger logger = LoggerFactory.getLogger(SoapLoggingInterceptor.class);
+
+    @Override
+    public boolean handleRequest(MessageContext messageContext, Object endpoint) {
+        logMessage("SOAP Request", messageContext.getRequest());
+        return true;
     }
 
-    // other methods ...
-}
-
-
-
-/**
- * Exception thrown when schema validation fails during SOAP request processing.
- */
-public class SchemaValidationException extends RuntimeException {
-
-    /**
-     * Constructs a new SchemaValidationException with a specific message.
-     *
-     * @param message the detail message
-     */
-    public SchemaValidationException(String message) {
-        super(message);
+    @Override
+    public boolean handleResponse(MessageContext messageContext, Object endpoint) {
+        logMessage("SOAP Response", messageContext.getResponse());
+        return true;
     }
 
-    /**
-     * Constructs a new SchemaValidationException with a message and cause.
-     *
-     * @param message the detail message
-     * @param cause the cause of the exception
-     */
-    public SchemaValidationException(String message, Throwable cause) {
-        super(message, cause);
+    @Override
+    public boolean handleFault(MessageContext messageContext, Object endpoint) {
+        logMessage("SOAP Fault", messageContext.getResponse());
+        return true;
+    }
+
+    @Override
+    public void afterCompletion(MessageContext messageContext, Object endpoint, Exception ex) {
+        // No action needed
+    }
+
+    private void logMessage(String type, org.springframework.ws.WebServiceMessage message) {
+        try {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            message.writeTo(out);
+            logger.info("{}:\n{}", type, out.toString());
+        } catch (Exception e) {
+            logger.error("Error logging {} message: {}", type, e.getMessage());
+        }
     }
 }
